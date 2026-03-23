@@ -1,91 +1,51 @@
-#!/usr/bin/env python3
+import os
+import random
 
-import subprocess
-import re
-from typing import List, Tuple
+class GitMutator:
+    def __init__(self):
+        self.mutation_rate = 0.1
 
-class GitMutate:
-    def __init__(self, repo_path: str = '.'):
-        self.repo_path = repo_path
+    def mutate_file(self, filepath):
+        with open(filepath, 'r') as f:
+            lines = f.readlines()
 
-    def get_diff(self, commit_range: str = 'HEAD~1..HEAD') -> str:
-        """Get git diff for specified commit range"""
-        cmd = ['git', '-C', self.repo_path, 'diff', commit_range]
-        result = subprocess.run(cmd, capture_output=True, text=True)
-        return result.stdout
+        for i in range(len(lines)):
+            if random.random() < self.mutation_rate:
+                lines[i] = self._mutate_line(lines[i])
 
-    def parse_diff(self, diff_text: str) -> List[Tuple[str, List[str], List[str]]]:
-        """Parse git diff into list of (filename, removed_lines, added_lines)"""
-        changes = []
-        current_file = None
-        removed_lines = []
-        added_lines = []
+        with open(filepath, 'w') as f:
+            f.writelines(lines)
 
-        for line in diff_text.split('\n'):
-            if line.startswith('diff --git'):
-                if current_file:
-                    changes.append((current_file, removed_lines, added_lines))
-                    removed_lines = []
-                    added_lines = []
-                current_file = re.search(r'b/(.+)$', line).group(1)
-            elif line.startswith('-') and not line.startswith('---'):
-                removed_lines.append(line[1:])
-            elif line.startswith('+') and not line.startswith('+++'):
-                added_lines.append(line[1:])
+    def _mutate_line(self, line):
+        words = line.split()
+        for i in range(len(words)):
+            if random.random() < self.mutation_rate:
+                words[i] = self._mutate_word(words[i])
+        return ' '.join(words) + '\n'
 
-        if current_file:
-            changes.append((current_file, removed_lines, added_lines))
+    def _mutate_word(self, word):
+        mutation = random.choice(['replace', 'insert', 'delete'])
+        if mutation == 'replace':
+            return self._replace_char(word)
+        elif mutation == 'insert':
+            return self._insert_char(word)
+        else:
+            return self._delete_char(word)
 
-        return changes
+    def _replace_char(self, word):
+        idx = random.randint(0, len(word) - 1)
+        return word[:idx] + random.choice('abcdefghijklmnopqrstuvwxyz') + word[idx+1:]
 
-    def mutate_changes(self, changes: List[Tuple[str, List[str], List[str]]]) -> List[Tuple[str, List[str], List[str]]]:
-        """Apply mutations to the changed lines"""
-        mutated_changes = []
+    def _insert_char(self, word):
+        idx = random.randint(0, len(word))
+        return word[:idx] + random.choice('abcdefghijklmnopqrstuvwxyz') + word[idx:]
 
-        for filename, removed, added in changes:
-            mutated_added = []
-            for line in added:
-                # Example mutations:
-                # 1. Add logging for function definitions
-                if re.match(r'^\s*def\s+\w+\s*\(', line):
-                    indent = len(line) - len(line.lstrip())
-                    func_name = re.search(r'def\s+(\w+)', line).group(1)
-                    mutated_added.append(line)
-                    mutated_added.append(' ' * indent + f'print(f"Calling {func_name}")')
-                else:
-                    mutated_added.append(line)
-
-            mutated_changes.append((filename, removed, mutated_added))
-
-        return mutated_changes
-
-    def apply_mutations(self, mutated_changes: List[Tuple[str, List[str], List[str]]]) -> None:
-        """Apply mutated changes back to files"""
-        for filename, _, added in mutated_changes:
-            file_path = f"{self.repo_path}/{filename}"
-            with open(file_path, 'r') as f:
-                content = f.readlines()
-
-            # Create new content with mutations
-            new_content = []
-            added_idx = 0
-            for line in content:
-                if added_idx < len(added) and line.strip() == added[added_idx].strip():
-                    new_content.append(line)
-                    added_idx += 1
-                else:
-                    new_content.append(line)
-
-            # Write back to file
-            with open(file_path, 'w') as f:
-                f.writelines(new_content)
-
-def main():
-    mutator = GitMutate()
-    diff = mutator.get_diff()
-    changes = mutator.parse_diff(diff)
-    mutated = mutator.mutate_changes(changes)
-    mutator.apply_mutations(mutated)
+    def _delete_char(self, word):
+        if len(word) == 1:
+            return ''
+        idx = random.randint(0, len(word) - 1)
+        return word[:idx] + word[idx+1:]
 
 if __name__ == '__main__':
-    main()
+    mutator = GitMutator()
+    mutator.mutate_file('./src/main.py')
