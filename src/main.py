@@ -1,22 +1,69 @@
 import random
 
 class Mutator:
-    def __init__(self, mutation_rate=0.1):
-        self.mutation_rate = mutation_rate
+    def __init__(self, genome):
+        self.genome = genome
 
-    def mutate(self, input_str):
-        """Mutate the input string with a given probability."""
-        output_chars = []
-        for char in input_str:
-            if random.random() < self.mutation_rate:
-                output_chars.append(chr(random.randint(32, 126)))
+    def mutate(self, mutation_rate=0.01):
+        """Mutate the genome with the given mutation rate."""
+        mutated_genome = []
+        for gene in self.genome:
+            if random.random() < mutation_rate:
+                mutated_gene = self.mutate_gene(gene)
+                mutated_genome.append(mutated_gene)
             else:
-                output_chars.append(char)
-        return ''.join(output_chars)
+                mutated_genome.append(gene)
+        return mutated_genome
 
-if __name__ == '__main__':
-    mutator = Mutator(mutation_rate=0.2)
-    original_text = "The quick brown fox jumps over the lazy dog."
-    mutated_text = mutator.mutate(original_text)
-    print(f"Original text: {original_text}")
-    print(f"Mutated text: {mutated_text}")
+    def mutate_gene(self, gene):
+        """Mutate a single gene using a variety of techniques."""
+        mutation_type = random.randint(1, 5)
+        if mutation_type == 1:
+            return self.point_mutation(gene)
+        elif mutation_type == 2:
+            return self.insertion_mutation(gene)
+        elif mutation_type == 3:
+            return self.deletion_mutation(gene)
+        elif mutation_type == 4:
+            return self.duplication_mutation(gene)
+        else:
+            return self.inversion_mutation(gene)
+
+    def point_mutation(self, gene):
+        """Replace a random character in the gene with a new random character."""
+        gene_list = list(gene)
+        index = random.randint(0, len(gene_list) - 1)
+        gene_list[index] = chr(random.randint(ord('a'), ord('z')))
+        return ''.join(gene_list)
+
+    def insertion_mutation(self, gene):
+        """Insert a new random character at a random position in the gene."""
+        gene_list = list(gene)
+        index = random.randint(0, len(gene_list))
+        gene_list.insert(index, chr(random.randint(ord('a'), ord('z'))))
+        return ''.join(gene_list)
+
+    def deletion_mutation(self, gene):
+        """Remove a random character from the gene."""
+        gene_list = list(gene)
+        if len(gene_list) > 0:
+            index = random.randint(0, len(gene_list) - 1)
+            del gene_list[index]
+        return ''.join(gene_list)
+
+    def duplication_mutation(self, gene):
+        """Duplicate a random substring of the gene."""
+        gene_list = list(gene)
+        start = random.randint(0, len(gene_list) - 1)
+        end = random.randint(start, len(gene_list) - 1)
+        duplicate = ''.join(gene_list[start:end+1])
+        gene_list.insert(random.randint(0, len(gene_list)), duplicate)
+        return ''.join(gene_list)
+
+    def inversion_mutation(self, gene):
+        """Reverse a random substring of the gene."""
+        gene_list = list(gene)
+        start = random.randint(0, len(gene_list) - 1)
+        end = random.randint(start, len(gene_list) - 1)
+        gene_list[start:end+1] = reversed(gene_list[start:end+1])
+        return ''.join(gene_list)
